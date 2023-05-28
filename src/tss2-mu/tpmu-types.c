@@ -94,6 +94,24 @@ static TSS2_RC marshal_sm3_256(BYTE const *src, uint8_t buffer[],
     return marshal_tab(src, buffer, buffer_size, offset, TPM2_SM3_256_DIGEST_SIZE);
 }
 
+static TSS2_RC marshal_hash_sha3_256(BYTE const *src, uint8_t buffer[],
+                                     size_t buffer_size, size_t *offset)
+{
+    return marshal_tab(src, buffer, buffer_size, offset, TPM2_SHA3_256_DIGEST_SIZE);
+}
+
+static TSS2_RC marshal_hash_sha3_384(BYTE const *src, uint8_t buffer[],
+                                     size_t buffer_size, size_t *offset)
+{
+    return marshal_tab(src, buffer, buffer_size, offset, TPM2_SHA3_384_DIGEST_SIZE);
+}
+
+static TSS2_RC marshal_hash_sha3_512(BYTE const *src, uint8_t buffer[],
+                                     size_t buffer_size, size_t *offset)
+{
+    return marshal_tab(src, buffer, buffer_size, offset, TPM2_SHA3_512_DIGEST_SIZE);
+}
+
 static TSS2_RC marshal_ecc(BYTE const *src, uint8_t buffer[],
                            size_t buffer_size, size_t *offset)
 {
@@ -195,6 +213,24 @@ static TSS2_RC unmarshal_sm3_256(uint8_t const buffer[], size_t buffer_size,
                                  size_t *offset, BYTE *dest)
 {
     return unmarshal_tab(buffer, buffer_size, offset, dest, TPM2_SM3_256_DIGEST_SIZE);
+}
+
+static TSS2_RC unmarshal_hash_sha3_256(uint8_t const buffer[], size_t buffer_size,
+                                       size_t *offset, BYTE *dest)
+{
+    return unmarshal_tab(buffer, buffer_size, offset, dest, TPM2_SHA3_256_DIGEST_SIZE);
+}
+
+static TSS2_RC unmarshal_hash_sha3_384(uint8_t const buffer[], size_t buffer_size,
+                                       size_t *offset, BYTE *dest)
+{
+    return unmarshal_tab(buffer, buffer_size, offset, dest, TPM2_SHA3_384_DIGEST_SIZE);
+}
+
+static TSS2_RC unmarshal_hash_sha3_512(uint8_t const buffer[], size_t buffer_size,
+                                       size_t *offset, BYTE *dest)
+{
+    return unmarshal_tab(buffer, buffer_size, offset, dest, TPM2_SHA3_512_DIGEST_SIZE);
 }
 
 static TSS2_RC unmarshal_ecc(uint8_t const buffer[], size_t buffer_size,
@@ -455,13 +491,19 @@ TPMU_MARSHAL2(TPMU_HA,
     TPM2_ALG_SHA256, ADDR, sha256[0], marshal_hash_sha256,
     TPM2_ALG_SHA384, ADDR, sha384[0], marshal_hash_sha384,
     TPM2_ALG_SHA512, ADDR, sha512[0], marshal_hash_sha512,
-    TPM2_ALG_SM3_256, ADDR, sm3_256[0], marshal_sm3_256)
+    TPM2_ALG_SM3_256, ADDR, sm3_256[0], marshal_sm3_256,
+    TPM2_ALG_SHA3_256, ADDR, sha3_256[0], marshal_hash_sha3_256,
+    TPM2_ALG_SHA3_384, ADDR, sha3_384[0], marshal_hash_sha3_384,
+    TPM2_ALG_SHA3_512, ADDR, sha3_512[0], marshal_hash_sha3_512)
 TPMU_UNMARSHAL2(TPMU_HA,
     TPM2_ALG_SHA1, sha1[0], unmarshal_hash_sha,
     TPM2_ALG_SHA256, sha256[0], unmarshal_hash_sha256,
     TPM2_ALG_SHA384, sha384[0], unmarshal_hash_sha384,
     TPM2_ALG_SHA512, sha512[0], unmarshal_hash_sha512,
-    TPM2_ALG_SM3_256, sm3_256[0], unmarshal_sm3_256)
+    TPM2_ALG_SM3_256, sm3_256[0], unmarshal_sm3_256,
+    TPM2_ALG_SHA3_256, sha3_256[0], unmarshal_hash_sha3_256,
+    TPM2_ALG_SHA3_384, sha3_384[0], unmarshal_hash_sha3_384,
+    TPM2_ALG_SHA3_512, sha3_512[0], unmarshal_hash_sha3_512)
 
 TPMU_MARSHAL2(TPMU_CAPABILITIES,
     TPM2_CAP_ALGS, ADDR, algorithms, Tss2_MU_TPML_ALG_PROPERTY_Marshal,
@@ -498,7 +540,8 @@ TPMU_MARSHAL2(TPMU_ATTEST,
     TPM2_ST_ATTEST_COMMAND_AUDIT, ADDR, commandAudit, Tss2_MU_TPMS_COMMAND_AUDIT_INFO_Marshal,
     TPM2_ST_ATTEST_SESSION_AUDIT, ADDR, sessionAudit, Tss2_MU_TPMS_SESSION_AUDIT_INFO_Marshal,
     TPM2_ST_ATTEST_TIME, ADDR, time, Tss2_MU_TPMS_TIME_ATTEST_INFO_Marshal,
-    TPM2_ST_ATTEST_NV, ADDR, nv, Tss2_MU_TPMS_NV_CERTIFY_INFO_Marshal)
+    TPM2_ST_ATTEST_NV, ADDR, nv, Tss2_MU_TPMS_NV_CERTIFY_INFO_Marshal,
+    TPM2_ST_ATTEST_NV_DIGEST, ADDR, nvDigest, Tss2_MU_TPMS_NV_DIGEST_CERTIFY_INFO_Marshal)
 TPMU_UNMARSHAL2(TPMU_ATTEST,
     TPM2_ST_ATTEST_CERTIFY, certify, Tss2_MU_TPMS_CERTIFY_INFO_Unmarshal,
     TPM2_ST_ATTEST_CREATION, creation, Tss2_MU_TPMS_CREATION_INFO_Unmarshal,
@@ -506,18 +549,21 @@ TPMU_UNMARSHAL2(TPMU_ATTEST,
     TPM2_ST_ATTEST_COMMAND_AUDIT, commandAudit, Tss2_MU_TPMS_COMMAND_AUDIT_INFO_Unmarshal,
     TPM2_ST_ATTEST_SESSION_AUDIT, sessionAudit, Tss2_MU_TPMS_SESSION_AUDIT_INFO_Unmarshal,
     TPM2_ST_ATTEST_TIME, time, Tss2_MU_TPMS_TIME_ATTEST_INFO_Unmarshal,
-    TPM2_ST_ATTEST_NV, nv, Tss2_MU_TPMS_NV_CERTIFY_INFO_Unmarshal)
+    TPM2_ST_ATTEST_NV, nv, Tss2_MU_TPMS_NV_CERTIFY_INFO_Unmarshal,
+    TPM2_ST_ATTEST_NV_DIGEST, nvDigest, Tss2_MU_TPMS_NV_DIGEST_CERTIFY_INFO_Unmarshal)
 
 TPMU_MARSHAL2(TPMU_SYM_KEY_BITS,
     TPM2_ALG_AES, VAL, aes, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_SM4, VAL, sm4, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_CAMELLIA, VAL, camellia, Tss2_MU_UINT16_Marshal,
+    TPM2_ALG_TDES, VAL, tdes, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_XOR, VAL, exclusiveOr, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_SYMCIPHER, VAL, sym, Tss2_MU_UINT16_Marshal)
 TPMU_UNMARSHAL2(TPMU_SYM_KEY_BITS,
     TPM2_ALG_AES, aes, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_SM4, sm4, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_CAMELLIA, camellia, Tss2_MU_UINT16_Unmarshal,
+    TPM2_ALG_TDES, tdes, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_XOR, exclusiveOr, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_SYMCIPHER, sym, Tss2_MU_UINT16_Unmarshal)
 
@@ -525,12 +571,14 @@ TPMU_MARSHAL2(TPMU_SYM_MODE,
     TPM2_ALG_AES, VAL, aes, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_SM4, VAL, sm4, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_CAMELLIA, VAL, camellia, Tss2_MU_UINT16_Marshal,
+    TPM2_ALG_TDES, VAL, tdes, Tss2_MU_UINT16_Marshal,
     TPM2_ALG_XOR, ADDR, sym, marshal_null,
     TPM2_ALG_SYMCIPHER, VAL, sym, Tss2_MU_UINT16_Marshal)
 TPMU_UNMARSHAL2(TPMU_SYM_MODE,
     TPM2_ALG_AES, aes, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_SM4, sm4, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_CAMELLIA, camellia, Tss2_MU_UINT16_Unmarshal,
+    TPM2_ALG_TDES, tdes, Tss2_MU_UINT16_Unmarshal,
     TPM2_ALG_XOR, sym, unmarshal_null,
     TPM2_ALG_SYMCIPHER, sym, Tss2_MU_UINT16_Unmarshal)
 
@@ -541,6 +589,7 @@ TPMU_MARSHAL2(TPMU_SIG_SCHEME,
     TPM2_ALG_ECDAA, ADDR, ecdaa, Tss2_MU_TPMS_SCHEME_ECDAA_Marshal,
     TPM2_ALG_SM2, ADDR, sm2, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
     TPM2_ALG_ECSCHNORR, ADDR, ecschnorr, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
+    TPM2_ALG_EDDSA, ADDR, eddsa, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
     TPM2_ALG_HMAC, ADDR, hmac, Tss2_MU_TPMS_SCHEME_HASH_Marshal)
 TPMU_UNMARSHAL2(TPMU_SIG_SCHEME,
     TPM2_ALG_RSASSA, rsassa, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
@@ -549,16 +598,19 @@ TPMU_UNMARSHAL2(TPMU_SIG_SCHEME,
     TPM2_ALG_ECDAA, ecdaa, Tss2_MU_TPMS_SCHEME_ECDAA_Unmarshal,
     TPM2_ALG_SM2, sm2, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
     TPM2_ALG_ECSCHNORR, ecschnorr, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
+    TPM2_ALG_EDDSA, eddsa, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
     TPM2_ALG_HMAC, hmac, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal)
 
 TPMU_MARSHAL2(TPMU_KDF_SCHEME,
     TPM2_ALG_MGF1, ADDR, mgf1, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
     TPM2_ALG_KDF1_SP800_56A, ADDR, kdf1_sp800_56a, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
-    TPM2_ALG_KDF1_SP800_108, ADDR, kdf1_sp800_108, Tss2_MU_TPMS_SCHEME_HASH_Marshal)
+    TPM2_ALG_KDF1_SP800_108, ADDR, kdf1_sp800_108, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
+    TPM2_ALG_KDF2, ADDR, kdf2, Tss2_MU_TPMS_SCHEME_HASH_Marshal)
 TPMU_UNMARSHAL2(TPMU_KDF_SCHEME,
     TPM2_ALG_MGF1, mgf1, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
     TPM2_ALG_KDF1_SP800_56A, kdf1_sp800_56a, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
-    TPM2_ALG_KDF1_SP800_108, kdf1_sp800_108, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal)
+    TPM2_ALG_KDF1_SP800_108, kdf1_sp800_108, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
+    TPM2_ALG_KDF2, kdf2, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal)
 
 TPMU_MARSHAL2(TPMU_ASYM_SCHEME,
     TPM2_ALG_ECDH, ADDR, ecdh, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
@@ -570,7 +622,8 @@ TPMU_MARSHAL2(TPMU_ASYM_SCHEME,
     TPM2_ALG_SM2, ADDR, sm2, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
     TPM2_ALG_ECSCHNORR, ADDR, ecschnorr, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
     TPM2_ALG_RSAES, ADDR, rsaes, marshal_null,
-    TPM2_ALG_OAEP, ADDR, oaep, Tss2_MU_TPMS_SCHEME_HASH_Marshal)
+    TPM2_ALG_OAEP, ADDR, oaep, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
+    TPM2_ALG_EDDSA, ADDR, eddsa, Tss2_MU_TPMS_SCHEME_HASH_Marshal)
 TPMU_UNMARSHAL2(TPMU_ASYM_SCHEME,
     TPM2_ALG_ECDH, ecdh, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
     TPM2_ALG_ECMQV, ecmqv, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
@@ -581,7 +634,8 @@ TPMU_UNMARSHAL2(TPMU_ASYM_SCHEME,
     TPM2_ALG_SM2, sm2, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
     TPM2_ALG_ECSCHNORR, ecschnorr, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
     TPM2_ALG_RSAES, rsaes, unmarshal_null,
-    TPM2_ALG_OAEP, oaep, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal)
+    TPM2_ALG_OAEP, oaep, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal,
+    TPM2_ALG_EDDSA, eddsa, Tss2_MU_TPMS_SCHEME_HASH_Unmarshal)
 
 TPMU_MARSHAL2(TPMU_SCHEME_KEYEDHASH,
     TPM2_ALG_HMAC, ADDR, hmac, Tss2_MU_TPMS_SCHEME_HASH_Marshal,
@@ -597,6 +651,7 @@ TPMU_MARSHAL2(TPMU_SIGNATURE,
     TPM2_ALG_ECDAA, ADDR, ecdaa, Tss2_MU_TPMS_SIGNATURE_ECC_Marshal,
     TPM2_ALG_SM2, ADDR, sm2, Tss2_MU_TPMS_SIGNATURE_ECC_Marshal,
     TPM2_ALG_ECSCHNORR, ADDR, ecschnorr, Tss2_MU_TPMS_SIGNATURE_ECC_Marshal,
+    TPM2_ALG_EDDSA, ADDR, eddsa, Tss2_MU_TPMS_SIGNATURE_ECC_Marshal,
     TPM2_ALG_HMAC, ADDR, hmac, Tss2_MU_TPMT_HA_Marshal)
 TPMU_UNMARSHAL2(TPMU_SIGNATURE,
     TPM2_ALG_RSASSA, rsassa, Tss2_MU_TPMS_SIGNATURE_RSA_Unmarshal,
@@ -605,6 +660,7 @@ TPMU_UNMARSHAL2(TPMU_SIGNATURE,
     TPM2_ALG_ECDAA, ecdaa, Tss2_MU_TPMS_SIGNATURE_ECC_Unmarshal,
     TPM2_ALG_SM2, sm2, Tss2_MU_TPMS_SIGNATURE_ECC_Unmarshal,
     TPM2_ALG_ECSCHNORR, ecschnorr, Tss2_MU_TPMS_SIGNATURE_ECC_Unmarshal,
+    TPM2_ALG_EDDSA, eddsa, Tss2_MU_TPMS_SIGNATURE_ECC_Unmarshal,
     TPM2_ALG_HMAC, hmac, Tss2_MU_TPMT_HA_Unmarshal)
 
 TPMU_MARSHAL2(TPMU_SENSITIVE_COMPOSITE,
