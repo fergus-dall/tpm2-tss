@@ -273,6 +273,9 @@ ESYS_TESTS_INTEGRATION_MANDATORY = \
     test/integration/esys-create-session-auth-sha384.int \
     test/integration/esys-create-session-auth-sha512.int \
     test/integration/esys-create-session-auth-sm3.int \
+    test/integration/esys-create-session-auth-sha3_256.int \
+    test/integration/esys-create-session-auth-sha3_384.int \
+    test/integration/esys-create-session-auth-sha3_512.int \
     test/integration/esys-create-session-auth-aes-128.int \
     test/integration/esys-create-session-auth-aes-192.int \
     test/integration/esys-create-session-auth-aes-256.int \
@@ -1435,6 +1438,33 @@ test_integration_esys_create_session_auth_sm3_int_CFLAGS  = $(TESTS_CFLAGS) \
 test_integration_esys_create_session_auth_sm3_int_LDADD   = $(TESTS_LDADD)
 test_integration_esys_create_session_auth_sm3_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
 test_integration_esys_create_session_auth_sm3_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_sha3_256_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_HASH_ALG=TPM2_ALG_SHA3_256 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_sha3_256_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_sha3_256_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_sha3_256_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_sha3_384_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_HASH_ALG=TPM2_ALG_SHA3_384 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_sha3_384_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_sha3_384_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_sha3_384_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_sha3_512_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_HASH_ALG=TPM2_ALG_SHA3_512 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_sha3_512_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_sha3_512_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_sha3_512_int_SOURCES = \
     $(ESYS_SRC_UTIL_CRYPTO_SRC) \
     test/integration/esys-create-session-auth.int.c \
     test/integration/main-esys.c test/integration/test-esys.h

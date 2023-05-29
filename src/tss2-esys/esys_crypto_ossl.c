@@ -127,6 +127,12 @@ get_ossl_hash_md(TPM2_ALG_ID hashAlg)
     case TPM2_ALG_SM3_256:
         return EVP_sm3();
 #endif
+    case TPM2_ALG_SHA3_256:
+        return EVP_sha3_256();
+    case TPM2_ALG_SHA3_384:
+        return EVP_sha3_384();
+    case TPM2_ALG_SHA3_512:
+        return EVP_sha3_512();
     default:
         return NULL;
     }
@@ -146,6 +152,12 @@ get_ossl_hash_md(TPM2_ALG_ID hashAlg)
         return "SHA512";
     case TPM2_ALG_SM3_256:
         return "SM3";
+    case TPM2_ALG_SHA3_256:
+        return "SHA3-256";
+    case TPM2_ALG_SHA3_384:
+        return "SHA3-384";
+    case TPM2_ALG_SHA3_512:
+        return "SHA3-512";
     default:
         return NULL;
     }

@@ -52,6 +52,15 @@ iesys_crypto_hash_get_digest_size(TPM2_ALG_ID hashAlg, size_t * size)
     case TPM2_ALG_SM3_256:
         *size = TPM2_SM3_256_DIGEST_SIZE;
         break;
+    case TPM2_ALG_SHA3_256:
+        *size = TPM2_SHA3_256_DIGEST_SIZE;
+        break;
+    case TPM2_ALG_SHA3_384:
+        *size = TPM2_SHA3_384_DIGEST_SIZE;
+        break;
+    case TPM2_ALG_SHA3_512:
+        *size = TPM2_SHA3_512_DIGEST_SIZE;
+        break;
     default:
         LOG_ERROR("Unsupported hash algorithm (%"PRIu16")", hashAlg);
         return TSS2_ESYS_RC_BAD_VALUE;
