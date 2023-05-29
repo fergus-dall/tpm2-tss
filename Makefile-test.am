@@ -267,7 +267,12 @@ ESYS_TESTS_INTEGRATION_MANDATORY = \
     test/integration/esys-create-session-auth-ecc-nist-p256.int \
     test/integration/esys-create-session-auth-ecc-nist-p384.int \
     test/integration/esys-create-session-auth-ecc-nist-p521.int \
+    test/integration/esys-create-session-auth-ecc-bn-p256.int \
+    test/integration/esys-create-session-auth-ecc-bn-p638.int \
     test/integration/esys-create-session-auth-ecc-sm2-p256.int \
+    test/integration/esys-create-session-auth-ecc-bp-p256-r1.int \
+    test/integration/esys-create-session-auth-ecc-bp-p384-r1.int \
+    test/integration/esys-create-session-auth-ecc-bp-p512-r1.int \
     test/integration/esys-create-session-auth-sha1.int \
     test/integration/esys-create-session-auth-sha256.int \
     test/integration/esys-create-session-auth-sha384.int \
@@ -1514,11 +1519,56 @@ test_integration_esys_create_session_auth_ecc_nist_p521_int_SOURCES = \
     test/integration/esys-create-session-auth.int.c \
     test/integration/main-esys.c test/integration/test-esys.h
 
+test_integration_esys_create_session_auth_ecc_bn_p256_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ECC_CURVE=TPM2_ECC_BN_P256 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bn_p256_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_ecc_bn_p256_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bn_p256_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_ecc_bn_p638_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ECC_CURVE=TPM2_ECC_BN_P638 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bn_p638_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_ecc_bn_p638_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bn_p638_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
 test_integration_esys_create_session_auth_ecc_sm2_p256_int_CFLAGS  = $(TESTS_CFLAGS) \
     -DTEST_ECC_CURVE=TPM2_ECC_SM2_P256 $(TSS2_ESYS_CFLAGS_CRYPTO)
 test_integration_esys_create_session_auth_ecc_sm2_p256_int_LDADD   = $(TESTS_LDADD)
 test_integration_esys_create_session_auth_ecc_sm2_p256_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
 test_integration_esys_create_session_auth_ecc_sm2_p256_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_ecc_bp_p256_r1_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ECC_CURVE=TPM2_ECC_BP_P256_R1 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bp_p256_r1_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_ecc_bp_p256_r1_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bp_p256_r1_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_ecc_bp_p384_r1_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ECC_CURVE=TPM2_ECC_BP_P384_R1 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bp_p384_r1_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_ecc_bp_p384_r1_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bp_p384_r1_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_ecc_bp_p512_r1_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ECC_CURVE=TPM2_ECC_BP_P512_R1 $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bp_p512_r1_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_ecc_bp_p512_r1_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_ecc_bp_p512_r1_int_SOURCES = \
     $(ESYS_SRC_UTIL_CRYPTO_SRC) \
     test/integration/esys-create-session-auth.int.c \
     test/integration/main-esys.c test/integration/test-esys.h

@@ -931,10 +931,40 @@ iesys_cryptossl_get_ecdh_point(TPM2B_PUBLIC *key,
         curveId = NID_secp521r1;
         key_size = 66;
         break;
+#if defined(NID_tcg_bn_P256)
+    case TPM2_ECC_BN_P256:
+        curveId = NID_tcg_bn_P256;
+        key_size = 32;
+        break;
+#endif
+#if defined(NID_tcg_bn_P638)
+    case TPM2_ECC_BN_P638:
+        curveId = NID_tcg_bn_P638;
+        key_size = 80;
+        break;
+#endif
 #ifdef NID_sm2
     case TPM2_ECC_SM2_P256:
         curveId = NID_sm2;
         key_size = 32;
+        break;
+#endif
+#if defined(NID_brainpoolP256r1)
+    case TPM2_ECC_BP_P256_R1:
+        curveId = NID_brainpoolP256r1;
+        key_size = 32;
+        break;
+#endif
+#if defined(NID_brainpoolP384r1)
+    case TPM2_ECC_BP_P384_R1:
+        curveId = NID_brainpoolP384r1;
+        key_size = 48;
+        break;
+#endif
+#if defined(NID_brainpoolP512r1)
+    case TPM2_ECC_BP_P512_R1:
+        curveId = NID_brainpoolP512r1;
+        key_size = 64;
         break;
 #endif
     default:

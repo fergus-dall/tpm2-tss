@@ -688,6 +688,30 @@ iesys_cryptmbed_get_ecdh_point(TPM2B_PUBLIC *key,
                        "ECP group load failed", cleanup);
         }
         break;
+#if defined(MBEDTLS_ECP_DP_BP256R1_ENABLED)
+    case TPM2_ECC_BP_P256_R1:
+        if(mbedtls_ecp_group_load(&ecp_group, MBEDTLS_ECP_DP_BP256R1) != 0) {
+            goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
+                       "ECP group load failed", cleanup);
+        }
+        break;
+#endif
+#if defined(MBEDTLS_ECP_DP_BP384R1_ENABLED)
+    case TPM2_ECC_BP_P384_R1:
+        if(mbedtls_ecp_group_load(&ecp_group, MBEDTLS_ECP_DP_BP384R1) != 0) {
+            goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
+                       "ECP group load failed", cleanup);
+        }
+        break;
+#endif
+#if defined(MBEDTLS_ECP_DP_BP512R1_ENABLED)
+    case TPM2_ECC_BP_P512_R1:
+        if(mbedtls_ecp_group_load(&ecp_group, MBEDTLS_ECP_DP_BP512R1) != 0) {
+            goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
+                       "ECP group load failed", cleanup);
+        }
+        break;
+#endif
     default:
         return_error(TSS2_ESYS_RC_NOT_IMPLEMENTED,
                      "ECC curve not implemented.");
