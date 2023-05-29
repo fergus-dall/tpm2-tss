@@ -284,7 +284,12 @@ ESYS_TESTS_INTEGRATION_MANDATORY = \
     test/integration/esys-create-session-auth-aes-128.int \
     test/integration/esys-create-session-auth-aes-192.int \
     test/integration/esys-create-session-auth-aes-256.int \
+    test/integration/esys-create-session-auth-camellia-128.int \
+    test/integration/esys-create-session-auth-camellia-192.int \
+    test/integration/esys-create-session-auth-camellia-256.int \
     test/integration/esys-create-session-auth-sm4.int \
+    test/integration/esys-create-session-auth-tdes-128.int \
+    test/integration/esys-create-session-auth-tdes-192.int \
     test/integration/esys-create-session-auth-xor.int \
     test/integration/esys-crypto.int \
     test/integration/esys-ecc-parameters.int \
@@ -1603,11 +1608,61 @@ test_integration_esys_create_session_auth_aes_256_int_SOURCES = \
     test/integration/esys-create-session-auth.int.c \
     test/integration/main-esys.c test/integration/test-esys.h
 
+test_integration_esys_create_session_auth_camellia_128_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ENCRYPT_ALG=TPM2_ALG_CAMELLIA -DTEST_ENCRYPT_KEYBITS=128 \
+     $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_camellia_128_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_camellia_128_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_camellia_128_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_camellia_192_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ENCRYPT_ALG=TPM2_ALG_CAMELLIA -DTEST_ENCRYPT_KEYBITS=192 \
+     $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_camellia_192_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_camellia_192_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_camellia_192_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_camellia_256_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ENCRYPT_ALG=TPM2_ALG_CAMELLIA -DTEST_ENCRYPT_KEYBITS=256 \
+     $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_camellia_256_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_camellia_256_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_camellia_256_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
 test_integration_esys_create_session_auth_sm4_int_CFLAGS  = $(TESTS_CFLAGS) \
     -DTEST_ENCRYPT_ALG=TPM2_ALG_SM4 $(TSS2_ESYS_CFLAGS_CRYPTO)
 test_integration_esys_create_session_auth_sm4_int_LDADD   = $(TESTS_LDADD)
 test_integration_esys_create_session_auth_sm4_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
 test_integration_esys_create_session_auth_sm4_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_tdes_128_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ENCRYPT_ALG=TPM2_ALG_TDES -DTEST_ENCRYPT_KEYBITS=128 \
+     $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_tdes_128_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_tdes_128_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_tdes_128_int_SOURCES = \
+    $(ESYS_SRC_UTIL_CRYPTO_SRC) \
+    test/integration/esys-create-session-auth.int.c \
+    test/integration/main-esys.c test/integration/test-esys.h
+
+test_integration_esys_create_session_auth_tdes_192_int_CFLAGS  = $(TESTS_CFLAGS) \
+    -DTEST_ENCRYPT_ALG=TPM2_ALG_TDES -DTEST_ENCRYPT_KEYBITS=192 \
+     $(TSS2_ESYS_CFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_tdes_192_int_LDADD   = $(TESTS_LDADD)
+test_integration_esys_create_session_auth_tdes_192_int_LDFLAGS = $(TESTS_LDFLAGS) $(TSS2_ESYS_LDFLAGS_CRYPTO)
+test_integration_esys_create_session_auth_tdes_192_int_SOURCES = \
     $(ESYS_SRC_UTIL_CRYPTO_SRC) \
     test/integration/esys-create-session-auth.int.c \
     test/integration/main-esys.c test/integration/test-esys.h

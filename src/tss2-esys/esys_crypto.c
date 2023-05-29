@@ -103,6 +103,16 @@ TSS2_RC iesys_crypto_hmac_finish2b(ESYS_CRYPTO_CALLBACKS *crypto_cb,
         return crypto_cb->callback(__VA_ARGS__, crypto_cb->userdata); \
     } while (0)
 
+#define DO_CALLBACK_FALLBACK(callback, fallback, ...) \
+    do { \
+        if (crypto_cb->callback) \
+            return crypto_cb->callback(__VA_ARGS__, crypto_cb->userdata); \
+        if (crypto_cb->fallback)  \
+            return crypto_cb->fallback(__VA_ARGS__, crypto_cb->userdata); \
+        LOG_ERROR("Crypto callbacks \""str(callback)"\" and \""str(fallback)"\" both not set"); \
+        return TSS2_ESYS_RC_CALLBACK_NULL; \
+    } while (0)
+
 TSS2_RC iesys_crypto_rsa_pk_encrypt(
     ESYS_CRYPTO_CALLBACKS *crypto_cb,
     TPM2B_PUBLIC * pub_tpm_key,
@@ -249,7 +259,7 @@ TSS2_RC iesys_crypto_get_ecdh_point(
             out_size);
 }
 
- TSS2_RC iesys_crypto_aes_encrypt(
+ TSS2_RC iesys_crypto_sym_encrypt(
     ESYS_CRYPTO_CALLBACKS *crypto_cb,
     uint8_t *key,
     TPM2_ALG_ID tpm_sym_alg,
@@ -259,17 +269,39 @@ TSS2_RC iesys_crypto_get_ecdh_point(
     size_t buffer_size,
     uint8_t *iv)
  {
-     DO_CALLBACK(aes_encrypt,
-             key,
-             tpm_sym_alg,
-             key_bits,
-             tpm_mode,
-             buffer,
-             buffer_size,
-             iv);
+    if (tpm_sym_alg == TPM2_ALG_AES) {
+        DO_CALLBACK_FALLBACK(sym_encrypt,
+                aes_encrypt,
+                key,
+                tpm_sym_alg,
+                key_bits,
+                tpm_mode,
+                buffer,
+                buffer_size,
+                iv);
+    } else if (tpm_sym_alg == TPM2_ALG_SM4) {
+        DO_CALLBACK_FALLBACK(sym_encrypt,
+                sm4_encrypt,
+                key,
+                tpm_sym_alg,
+                key_bits,
+                tpm_mode,
+                buffer,
+                buffer_size,
+                iv);
+    } else {
+        DO_CALLBACK(sym_encrypt,
+                key,
+                tpm_sym_alg,
+                key_bits,
+                tpm_mode,
+                buffer,
+                buffer_size,
+                iv);
+    }
  }
 
-TSS2_RC iesys_crypto_aes_decrypt(
+TSS2_RC iesys_crypto_sym_decrypt(
     ESYS_CRYPTO_CALLBACKS *crypto_cb,
     uint8_t *key,
     TPM2_ALG_ID tpm_sym_alg,
@@ -279,54 +311,36 @@ TSS2_RC iesys_crypto_aes_decrypt(
     size_t buffer_size,
     uint8_t *iv)
 {
-    DO_CALLBACK(aes_decrypt,
-            key,
-            tpm_sym_alg,
-            key_bits,
-            tpm_mode,
-            buffer,
-            buffer_size,
-            iv);
-}
-
-TSS2_RC iesys_crypto_sm4_encrypt(
-    ESYS_CRYPTO_CALLBACKS *crypto_cb,
-    uint8_t *key,
-    TPM2_ALG_ID tpm_sym_alg,
-    TPMI_SM4_KEY_BITS key_bits,
-    TPM2_ALG_ID tpm_mode,
-    uint8_t *buffer,
-    size_t buffer_size,
-    uint8_t *iv)
-{
-    DO_CALLBACK(sm4_encrypt,
-            key,
-            tpm_sym_alg,
-            key_bits,
-            tpm_mode,
-            buffer,
-            buffer_size,
-            iv);
-}
-
-TSS2_RC iesys_crypto_sm4_decrypt(
-    ESYS_CRYPTO_CALLBACKS *crypto_cb,
-    uint8_t *key,
-    TPM2_ALG_ID tpm_sym_alg,
-    TPMI_SM4_KEY_BITS key_bits,
-    TPM2_ALG_ID tpm_mode,
-    uint8_t *buffer,
-    size_t buffer_size,
-    uint8_t *iv)
-{
-    DO_CALLBACK(sm4_decrypt,
-            key,
-            tpm_sym_alg,
-            key_bits,
-            tpm_mode,
-            buffer,
-            buffer_size,
-            iv);
+    if (tpm_sym_alg == TPM2_ALG_AES) {
+        DO_CALLBACK_FALLBACK(sym_decrypt,
+                aes_decrypt,
+                key,
+                tpm_sym_alg,
+                key_bits,
+                tpm_mode,
+                buffer,
+                buffer_size,
+                iv);
+    } else if (tpm_sym_alg == TPM2_ALG_SM4) {
+        DO_CALLBACK_FALLBACK(sym_decrypt,
+                sm4_decrypt,
+                key,
+                tpm_sym_alg,
+                key_bits,
+                tpm_mode,
+                buffer,
+                buffer_size,
+                iv);
+    } else {
+        DO_CALLBACK(sym_decrypt,
+                key,
+                tpm_sym_alg,
+                key_bits,
+                tpm_mode,
+                buffer,
+                buffer_size,
+                iv);
+    }
 }
 
 /** Compute the command or response parameter hash.
@@ -817,6 +831,18 @@ iesys_xor_parameter_obfuscation(ESYS_CRYPTO_CALLBACKS *crypto_cb,
         return TSS2_ESYS_RC_CALLBACK_NULL; \
     }
 
+#define TEST_CALLBACK_GROUP(callbacks, alg) \
+    (callbacks->alg##_encrypt && callbacks->alg##_decrypt)
+
+#define TEST_CALLBACK_GROUPS(callbacks, alg1, alg2, alg3) \
+    if (!TEST_CALLBACK_GROUP(callbacks, alg1) &&    \
+        !TEST_CALLBACK_GROUP(callbacks, alg2) && \
+        !TEST_CALLBACK_GROUP(callbacks, alg3)) { \
+    \
+        LOG_ERROR("No encryption/decryption callbacks set"); \
+        return TSS2_ESYS_RC_CALLBACK_NULL; \
+    }
+
 TSS2_RC
     ieys_set_crypto_callbacks(
                             ESYS_CRYPTO_CALLBACKS *crypto_cb,
@@ -833,6 +859,8 @@ TSS2_RC
         crypto_cb->aes_encrypt = _iesys_crypto_aes_encrypt;
         crypto_cb->sm4_decrypt = _iesys_crypto_sm4_decrypt;
         crypto_cb->sm4_encrypt = _iesys_crypto_sm4_encrypt;
+        crypto_cb->sym_decrypt = _iesys_crypto_sym_decrypt;
+        crypto_cb->sym_encrypt = _iesys_crypto_sym_encrypt;
         crypto_cb->get_ecdh_point = _iesys_crypto_get_ecdh_point;
         crypto_cb->hash_abort = _iesys_crypto_hash_abort;
         crypto_cb->hash_finish = _iesys_crypto_hash_finish;
@@ -847,20 +875,16 @@ TSS2_RC
         crypto_cb->rsa_pk_encrypt = _iesys_crypto_rsa_pk_encrypt;
 
     } else {
+        // At least one pair of encrypt/decrypt callbacks must be set
+        TEST_CALLBACK_GROUPS(user_cb, aes, sm4, sym);
 
-        TEST_AND_SET_CALLBACK(crypto_cb, user_cb, aes_decrypt);
-        TEST_AND_SET_CALLBACK(crypto_cb, user_cb, aes_encrypt);
-        // sm4 is optional
-        if (user_cb->sm4_encrypt) {
-            crypto_cb->sm4_encrypt = user_cb->sm4_encrypt;
-        } else {
-            crypto_cb->sm4_encrypt = _iesys_crypto_sm4_encrypt;
-        }
-        if (user_cb->sm4_decrypt) {
-            crypto_cb->sm4_decrypt = user_cb->sm4_decrypt;
-        } else {
-            crypto_cb->sm4_decrypt = _iesys_crypto_sm4_decrypt;
-        }
+        crypto_cb->aes_decrypt = user_cb->aes_decrypt;
+        crypto_cb->aes_encrypt = user_cb->aes_encrypt;
+        crypto_cb->sm4_decrypt = user_cb->sm4_decrypt;
+        crypto_cb->sm4_encrypt = user_cb->sm4_encrypt;
+        crypto_cb->sym_decrypt = user_cb->sym_decrypt;
+        crypto_cb->sym_encrypt = user_cb->sym_encrypt;
+
         TEST_AND_SET_CALLBACK(crypto_cb, user_cb, get_ecdh_point);
         TEST_AND_SET_CALLBACK(crypto_cb, user_cb, get_random2b);
         TEST_AND_SET_CALLBACK(crypto_cb, user_cb, rsa_pk_encrypt);

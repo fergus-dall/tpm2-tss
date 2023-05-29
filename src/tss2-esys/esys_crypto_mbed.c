@@ -15,6 +15,7 @@
 #include <mbedtls/rsa.h>
 #include <mbedtls/ecdh.h>
 #include <mbedtls/aes.h>
+#include <mbedtls/camellia.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 
@@ -828,6 +829,36 @@ cleanup:
     return r;
 }
 
+#define RUN_CIPHER(alg, mode) \
+do { \
+    mbedtls_##alg##_context ctx; \
+    mbedtls_##alg##_init(&ctx); \
+    \
+    /* Note in mbedTLS Documentation: \
+     * For CFB, you must set up the context with _setkey_enc(), \
+     * regardless of whether you are performing an encryption or decryption \
+     * operation, that is, regardless of the mode parameter. This is because \
+     * CFB mode uses the same key schedule for encryption and decryption. \
+     */ \
+    if (mbedtls_##alg##_setkey_enc(&ctx, key, key_bits) != 0) { \
+        goto_error(r, TSS2_ESYS_RC_BAD_VALUE, \
+                   "mbedtls_"#alg"_setkey_enc failed", \
+                   error##alg); \
+    } \
+    \
+    if (mbedtls_##alg##_crypt_cfb128( \
+            &ctx, mode, buffer_size, \
+            &iv_off, iv, buffer, buffer) != 0) { \
+        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, \
+                   "mbedtls_"#alg"_crypt_cfb128 failed", \
+                   error##alg); \
+    } \
+    \
+error##alg: \
+    mbedtls_##alg##_free(&ctx); \
+    return r; \
+} while(0)
+
 /** Encrypt data with AES.
  *
  * @param[in] key key used for AES.
@@ -844,7 +875,7 @@ cleanup:
  * @retval TSS2_ESYS_RC_GENERAL_FAILURE for errors of the crypto library.
  */
 TSS2_RC
-iesys_cryptmbed_sym_aes_encrypt(uint8_t * key,
+iesys_cryptmbed_sym_sym_encrypt(uint8_t * key,
                                 TPM2_ALG_ID tpm_sym_alg,
                                 TPMI_AES_KEY_BITS key_bits,
                                 TPM2_ALG_ID tpm_mode,
@@ -856,33 +887,27 @@ iesys_cryptmbed_sym_aes_encrypt(uint8_t * key,
     UNUSED(userdata);
 
     TSS2_RC r = TSS2_RC_SUCCESS;
-    mbedtls_aes_context aes_ctx;
+    size_t iv_off = 0;
 
     if (key == NULL || buffer == NULL) {
         return_error(TSS2_ESYS_RC_BAD_REFERENCE, "Bad reference");
     }
 
-    mbedtls_aes_init(&aes_ctx);
-
-    if (tpm_sym_alg != TPM2_ALG_AES || tpm_mode != TPM2_ALG_CFB) {
+    if (tpm_mode != TPM2_ALG_CFB) {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "AES encrypt called with wrong algorithm.", cleanup);
+                   "Encrypt called with wrong mode.", cleanup);
     }
 
-    if (mbedtls_aes_setkey_enc(&aes_ctx, key, key_bits) != 0) {
+    if (tpm_sym_alg == TPM2_ALG_AES) {
+        RUN_CIPHER(aes, MBEDTLS_AES_ENCRYPT);
+    } else if (tpm_sym_alg == TPM2_ALG_CAMELLIA) {
+        RUN_CIPHER(camellia, MBEDTLS_CAMELLIA_ENCRYPT);
+    } else {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "Key size not not implemented.", cleanup);
-    }
-
-    size_t iv_off = 0;
-    if (mbedtls_aes_crypt_cfb128(&aes_ctx, MBEDTLS_AES_ENCRYPT, buffer_size,
-                                 &iv_off, iv, buffer, buffer) != 0) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Enncrypt", cleanup);
+                   "Algorithm not implemented.", cleanup);
     }
 
 cleanup:
-    mbedtls_aes_free(&aes_ctx);
     return r;
 }
 
@@ -902,7 +927,7 @@ cleanup:
  * @retval TSS2_ESYS_RC_GENERAL_FAILURE for errors of the crypto library.
  */
 TSS2_RC
-iesys_cryptmbed_sym_aes_decrypt(uint8_t * key,
+iesys_cryptmbed_sym_sym_decrypt(uint8_t * key,
                                 TPM2_ALG_ID tpm_sym_alg,
                                 TPMI_AES_KEY_BITS key_bits,
                                 TPM2_ALG_ID tpm_mode,
@@ -914,39 +939,27 @@ iesys_cryptmbed_sym_aes_decrypt(uint8_t * key,
     UNUSED(userdata);
 
     TSS2_RC r = TSS2_RC_SUCCESS;
-    mbedtls_aes_context aes_ctx;
+    size_t iv_off = 0;
 
     if (key == NULL || buffer == NULL) {
         return_error(TSS2_ESYS_RC_BAD_REFERENCE, "Bad reference");
     }
 
-    mbedtls_aes_init(&aes_ctx);
-
-    if (tpm_sym_alg != TPM2_ALG_AES || tpm_mode != TPM2_ALG_CFB) {
+    if (tpm_mode != TPM2_ALG_CFB) {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "AES encrypt called with wrong algorithm.", cleanup);
+                   "Dencrypt called with wrong mode.", cleanup);
     }
 
-    /* Note in mbedTLS Documentation:
-     * For CFB, you must set up the context with mbedtls_aes_setkey_enc(),
-     * regardless of whether you are performing an encryption or decryption
-     * operation, that is, regardless of the mode parameter. This is because
-     * CFB mode uses the same key schedule for encryption and decryption.
-     */
-    if (mbedtls_aes_setkey_enc(&aes_ctx, key, key_bits) != 0) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Key size not not implemented.", cleanup);
-    }
-
-    size_t iv_off = 0;
-    if (mbedtls_aes_crypt_cfb128(&aes_ctx, MBEDTLS_AES_DECRYPT, buffer_size,
-                                 &iv_off, iv, buffer, buffer) != 0) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Dencrypt", cleanup);
+    if (tpm_sym_alg == TPM2_ALG_AES) {
+        RUN_CIPHER(aes, MBEDTLS_AES_DECRYPT);
+    } else if (tpm_sym_alg == TPM2_ALG_CAMELLIA) {
+        RUN_CIPHER(camellia, MBEDTLS_CAMELLIA_DECRYPT);
+    } else {
+        goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
+                   "Algorithm not implemented.", cleanup);
     }
 
 cleanup:
-    mbedtls_aes_free(&aes_ctx);
     return r;
 }
 

@@ -1089,10 +1089,10 @@ iesys_cryptossl_get_ecdh_point(TPM2B_PUBLIC *key,
     return r;
 }
 
-/** Encrypt data with AES.
+/** Encrypt data with a symmetric cipher.
  *
- * @param[in] key key used for AES.
- * @param[in] tpm_sym_alg AES type in TSS2 notation (must be TPM2_ALG_AES).
+ * @param[in] key symmetric key used for encryption.
+ * @param[in] tpm_sym_alg algorithm in TSS2 notation.
  * @param[in] key_bits Key size in bits.
  * @param[in] tpm_mode Block cipher mode of opertion in TSS2 notation (CFB).
  *            For parameter encryption only CFB can be used.
@@ -1105,19 +1105,19 @@ iesys_cryptossl_get_ecdh_point(TPM2B_PUBLIC *key,
  * @retval TSS2_ESYS_RC_GENERAL_FAILURE for errors of the crypto library.
  */
 TSS2_RC
-iesys_cryptossl_sym_aes_encrypt(uint8_t * key,
-                                TPM2_ALG_ID tpm_sym_alg,
-                                TPMI_AES_KEY_BITS key_bits,
-                                TPM2_ALG_ID tpm_mode,
-                                uint8_t * buffer,
-                                size_t buffer_size,
-                                uint8_t * iv,
-                                void *userdata)
+iesys_cryptossl_sym_encrypt(uint8_t * key,
+                            TPM2_ALG_ID tpm_sym_alg,
+                            TPMI_AES_KEY_BITS key_bits,
+                            TPM2_ALG_ID tpm_mode,
+                            uint8_t * buffer,
+                            size_t buffer_size,
+                            uint8_t * iv,
+                            void *userdata)
 {
     UNUSED(userdata);
 
     TSS2_RC r = TSS2_RC_SUCCESS;
-    const EVP_CIPHER  *cipher_alg = NULL;
+    const EVP_CIPHER *cipher_alg = NULL;
     EVP_CIPHER_CTX *ctx = NULL;
     int cipher_len;
 
@@ -1125,23 +1125,42 @@ iesys_cryptossl_sym_aes_encrypt(uint8_t * key,
         return_error(TSS2_ESYS_RC_BAD_REFERENCE, "Bad reference");
     }
 
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS AES input");
-
-    if (key_bits == 128 && tpm_mode == TPM2_ALG_CFB)
-        cipher_alg = EVP_aes_128_cfb();
-    else if (key_bits == 192 && tpm_mode == TPM2_ALG_CFB)
-        cipher_alg = EVP_aes_192_cfb();
-    else if (key_bits == 256 && tpm_mode == TPM2_ALG_CFB)
-        cipher_alg = EVP_aes_256_cfb();
-    else {
+    if (tpm_mode != TPM2_ALG_CFB) {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "AES algorithm not implemented or illegal mode (CFB expected).",
-                   cleanup);
+                   "Sym encrypt called with wrong mode.", cleanup);
     }
 
-    if (tpm_sym_alg != TPM2_ALG_AES) {
+    LOGBLOB_TRACE(buffer, buffer_size, "IESYS sym encrypt input");
+
+    if (tpm_sym_alg == TPM2_ALG_AES && key_bits == 128)
+        cipher_alg = EVP_aes_128_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_AES && key_bits == 192)
+        cipher_alg = EVP_aes_192_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_AES && key_bits == 256)
+        cipher_alg = EVP_aes_256_cfb();
+#if HAVE_EVP_SM4_CFB && !defined(OPENSSL_NO_SM4)
+    else if (tpm_sym_alg == TPM2_ALG_SM4 && key_bits == 128)
+        cipher_alg = EVP_sm4_cfb();
+#endif
+#if !defined(OPENSSL_NO_CAMELLIA)
+    else if (tpm_sym_alg == TPM2_ALG_CAMELLIA && key_bits == 128)
+        cipher_alg = EVP_camellia_128_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_CAMELLIA && key_bits == 192)
+        cipher_alg = EVP_camellia_192_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_CAMELLIA && key_bits == 256)
+        cipher_alg = EVP_camellia_256_cfb();
+#endif
+#if !defined(OPENSSL_NO_DES)
+    else if (tpm_sym_alg == TPM2_ALG_TDES && key_bits == 128)
+        cipher_alg = EVP_des_ede_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_TDES && key_bits == 192)
+        cipher_alg = EVP_des_ede3_cfb();
+#endif
+
+    if (cipher_alg == NULL) {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "AES encrypt called with wrong algorithm.", cleanup);
+                   "Algorithm not implemented or wrong key size.",
+                   cleanup);
     }
 
     /* Create and initialize the context */
@@ -1163,7 +1182,7 @@ iesys_cryptossl_sym_aes_encrypt(uint8_t * key,
     if (1 != EVP_EncryptFinal(ctx, buffer, &cipher_len)) {
         goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, "Encrypt final", cleanup);
     }
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS AES output");
+    LOGBLOB_TRACE(buffer, buffer_size, "IESYS sym encrypt output");
 
  cleanup:
 
@@ -1172,10 +1191,10 @@ iesys_cryptossl_sym_aes_encrypt(uint8_t * key,
     return r;
 }
 
-/** Decrypt data with AES.
+/** Decrypt data with a symmetric cipher.
  *
- * @param[in] key key used for AES.
- * @param[in] tpm_sym_alg AES type in TSS2 notation (must be TPM2_ALG_AES).
+ * @param[in] key symmetric key used for decryption.
+ * @param[in] tpm_sym_alg algorithm in TSS2 notation.
  * @param[in] key_bits Key size in bits.
  * @param[in] tpm_mode Block cipher mode of opertion in TSS2 notation (CFB).
  *            For parameter encryption only CFB can be used.
@@ -1188,14 +1207,14 @@ iesys_cryptossl_sym_aes_encrypt(uint8_t * key,
  * @retval TSS2_ESYS_RC_GENERAL_FAILURE for errors of the crypto library.
  */
 TSS2_RC
-iesys_cryptossl_sym_aes_decrypt(uint8_t * key,
-                                TPM2_ALG_ID tpm_sym_alg,
-                                TPMI_AES_KEY_BITS key_bits,
-                                TPM2_ALG_ID tpm_mode,
-                                uint8_t * buffer,
-                                size_t buffer_size,
-                                uint8_t * iv,
-                                void *userdata)
+iesys_cryptossl_sym_decrypt(uint8_t * key,
+                            TPM2_ALG_ID tpm_sym_alg,
+                            TPMI_AES_KEY_BITS key_bits,
+                            TPM2_ALG_ID tpm_mode,
+                            uint8_t * buffer,
+                            size_t buffer_size,
+                            uint8_t * iv,
+                            void *userdata)
 {
     UNUSED(userdata);
 
@@ -1208,178 +1227,39 @@ iesys_cryptossl_sym_aes_decrypt(uint8_t * key,
         return_error(TSS2_ESYS_RC_BAD_REFERENCE, "Bad reference");
     }
 
-    if (tpm_sym_alg != TPM2_ALG_AES) {
+    if (tpm_mode != TPM2_ALG_CFB) {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "AES encrypt called with wrong algorithm.", cleanup);
+                   "Sym encrypt called with wrong mode.", cleanup);
     }
 
-    if (key_bits == 128 && tpm_mode == TPM2_ALG_CFB)
+    if (tpm_sym_alg == TPM2_ALG_AES && key_bits == 128)
         cipher_alg = EVP_aes_128_cfb();
-    else if (key_bits == 192 && tpm_mode == TPM2_ALG_CFB)
+    else if (tpm_sym_alg == TPM2_ALG_AES && key_bits == 192)
         cipher_alg = EVP_aes_192_cfb();
-    else if (key_bits == 256 && tpm_mode == TPM2_ALG_CFB)
+    else if (tpm_sym_alg == TPM2_ALG_AES && key_bits == 256)
         cipher_alg = EVP_aes_256_cfb();
-    else {
-
-        goto_error(r, TSS2_ESYS_RC_NOT_IMPLEMENTED,
-                   "AES algorithm not implemented.", cleanup);
-    }
-
-    /* Create and initialize the context */
-    if(!(ctx = EVP_CIPHER_CTX_new())) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Initialize cipher context", cleanup);
-    }
-
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS AES input");
-
-    if (1 != EVP_DecryptInit(ctx, cipher_alg, key, iv)) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Initialize cipher operation", cleanup);
-    }
-
-    /* Perform the decryption */
-    if (1 != EVP_DecryptUpdate(ctx, buffer, &cipher_len, buffer, buffer_size)) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, "Encrypt update", cleanup);
-    }
-
-    if (1 != EVP_DecryptFinal(ctx, buffer, &cipher_len)) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, "Encrypt final", cleanup);
-    }
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS AES output");
-
- cleanup:
-
-    OSSL_FREE(ctx,EVP_CIPHER_CTX);
-    return r;
-}
-
 #if HAVE_EVP_SM4_CFB && !defined(OPENSSL_NO_SM4)
-/** Encrypt data with SM4.
- *
- * @param[in] key key used for SM4.
- * @param[in] tpm_sym_alg SM4 type in TSS2 notation (must be TPM2_ALG_SM4).
- * @param[in] key_bits Key size in bits.
- * @param[in] tpm_mode Block cipher mode of opertion in TSS2 notation (CFB).
- *            For parameter encryption only CFB can be used.
- * @param[in,out] buffer Data to be encrypted. The encrypted date will be stored
- *                in this buffer.
- * @param[in] buffer_size size of data to be encrypted.
- * @param[in] iv The initialization vector.
- * @retval TSS2_RC_SUCCESS on success, or TSS2_ESYS_RC_BAD_VALUE and
- * @retval TSS2_ESYS_RC_BAD_REFERENCE for invalid parameters,
- * @retval TSS2_ESYS_RC_GENERAL_FAILURE for errors of the crypto library.
- */
-TSS2_RC
-iesys_cryptossl_sym_sm4_encrypt(uint8_t * key,
-                                TPM2_ALG_ID tpm_sym_alg,
-                                TPMI_SM4_KEY_BITS key_bits,
-                                TPM2_ALG_ID tpm_mode,
-                                uint8_t * buffer,
-                                size_t buffer_size,
-                                uint8_t * iv,
-                                void *userdata)
-{
-    UNUSED(userdata);
+    else if (tpm_sym_alg == TPM2_ALG_SM4 && key_bits == 128)
+        cipher_alg = EVP_sm4_cfb();
+#endif
+#if !defined(OPENSSL_NO_CAMELLIA)
+    else if (tpm_sym_alg == TPM2_ALG_CAMELLIA && key_bits == 128)
+        cipher_alg = EVP_camellia_128_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_CAMELLIA && key_bits == 192)
+        cipher_alg = EVP_camellia_192_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_CAMELLIA && key_bits == 256)
+        cipher_alg = EVP_camellia_256_cfb();
+#endif
+#if !defined(OPENSSL_NO_DES)
+    else if (tpm_sym_alg == TPM2_ALG_TDES && key_bits == 128)
+        cipher_alg = EVP_des_ede_cfb();
+    else if (tpm_sym_alg == TPM2_ALG_TDES && key_bits == 192)
+        cipher_alg = EVP_des_ede3_cfb();
+#endif
 
-    TSS2_RC r = TSS2_RC_SUCCESS;
-    const EVP_CIPHER  *cipher_alg = NULL;
-    EVP_CIPHER_CTX *ctx = NULL;
-    int cipher_len;
-
-    if (key == NULL || buffer == NULL) {
-        return_error(TSS2_ESYS_RC_BAD_REFERENCE, "Bad reference");
-    }
-
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS SM4 input");
-
-    if (key_bits == 128 && tpm_mode == TPM2_ALG_CFB)
-        cipher_alg = EVP_sm4_cfb128();
-    else {
+    if (cipher_alg == NULL) {
         goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "SM4 algorithm not implemented or illegal mode (CFB expected).",
-                   cleanup);
-    }
-
-    if (tpm_sym_alg != TPM2_ALG_SM4) {
-        goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "SM4 encrypt called with wrong algorithm.", cleanup);
-    }
-
-    /* Create and initialize the context */
-    if(!(ctx = EVP_CIPHER_CTX_new())) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Initialize cipher context", cleanup);
-    }
-
-    if (1 != EVP_EncryptInit(ctx, cipher_alg, key, iv)) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
-                   "Initialize cipher operation", cleanup);
-    }
-
-    /* Perform the encryption */
-    if (1 != EVP_EncryptUpdate(ctx, buffer, &cipher_len, buffer, buffer_size)) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, "Encrypt update", cleanup);
-    }
-
-    if (1 != EVP_EncryptFinal(ctx, buffer, &cipher_len)) {
-        goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, "Encrypt final", cleanup);
-    }
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS SM4 output");
-
-cleanup:
-
-    OSSL_FREE(ctx,EVP_CIPHER_CTX);
-
-    return r;
-}
-
-/** Decrypt data with SM4.
- *
- * @param[in] key key used for SM4.
- * @param[in] tpm_sym_alg SM4 type in TSS2 notation (must be TPM2_ALG_SM4).
- * @param[in] key_bits Key size in bits.
- * @param[in] tpm_mode Block cipher mode of opertion in TSS2 notation (CFB).
- *            For parameter encryption only CFB can be used.
- * @param[in,out] buffer Data to be decrypted. The decrypted date will be stored
- *                in this buffer.
- * @param[in] buffer_size size of data to be encrypted.
- * @param[in] iv The initialization vector.
- * @retval TSS2_RC_SUCCESS on success, or TSS2_ESYS_RC_BAD_VALUE and
- * @retval TSS2_ESYS_RC_BAD_REFERENCE for invalid parameters,
- * @retval TSS2_ESYS_RC_GENERAL_FAILURE for errors of the crypto library.
- */
-TSS2_RC
-iesys_cryptossl_sym_sm4_decrypt(uint8_t * key,
-                                TPM2_ALG_ID tpm_sym_alg,
-                                TPMI_SM4_KEY_BITS key_bits,
-                                TPM2_ALG_ID tpm_mode,
-                                uint8_t * buffer,
-                                size_t buffer_size,
-                                uint8_t * iv,
-                                void *userdata)
-{
-    UNUSED(userdata);
-
-    TSS2_RC r = TSS2_RC_SUCCESS;
-    const EVP_CIPHER *cipher_alg = NULL;
-    EVP_CIPHER_CTX *ctx = NULL;
-    int cipher_len = 0;
-
-    if (key == NULL || buffer == NULL) {
-        return_error(TSS2_ESYS_RC_BAD_REFERENCE, "Bad reference");
-    }
-
-    if (tpm_sym_alg != TPM2_ALG_SM4) {
-        goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "SM4 decrypt called with wrong algorithm.", cleanup);
-    }
-
-    if (key_bits == 128 && tpm_mode == TPM2_ALG_CFB)
-        cipher_alg = EVP_sm4_cfb128();
-    else {
-        goto_error(r, TSS2_ESYS_RC_BAD_VALUE,
-                   "SM4 algorithm not implemented or illegal mode (CFB expected).",
+                   "Algorithm not implemented or wrong key size.",
                    cleanup);
     }
 
@@ -1389,7 +1269,7 @@ iesys_cryptossl_sym_sm4_decrypt(uint8_t * key,
                    "Initialize cipher context", cleanup);
     }
 
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS SM4 input");
+    LOGBLOB_TRACE(buffer, buffer_size, "IESYS sym decrypt input");
 
     if (1 != EVP_DecryptInit(ctx, cipher_alg, key, iv)) {
         goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE,
@@ -1404,14 +1284,13 @@ iesys_cryptossl_sym_sm4_decrypt(uint8_t * key,
     if (1 != EVP_DecryptFinal(ctx, buffer, &cipher_len)) {
         goto_error(r, TSS2_ESYS_RC_GENERAL_FAILURE, "Encrypt final", cleanup);
     }
-    LOGBLOB_TRACE(buffer, buffer_size, "IESYS SM4 output");
+    LOGBLOB_TRACE(buffer, buffer_size, "IESYS sym decrypt output");
 
 cleanup:
 
     OSSL_FREE(ctx,EVP_CIPHER_CTX);
     return r;
 }
-#endif
 
 /** Initialize OpenSSL crypto backend.
  *

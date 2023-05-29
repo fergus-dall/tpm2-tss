@@ -85,7 +85,7 @@ TSS2_RC iesys_cryptmbed_pk_encrypt(
     void *userdata);
 
 
-TSS2_RC iesys_cryptmbed_sym_aes_encrypt(
+TSS2_RC iesys_cryptmbed_sym_sym_encrypt(
     uint8_t *key,
     TPM2_ALG_ID tpm_sym_alg,
     TPMI_AES_KEY_BITS key_bits,
@@ -95,7 +95,7 @@ TSS2_RC iesys_cryptmbed_sym_aes_encrypt(
     uint8_t *iv,
     void *userdata);
 
-TSS2_RC iesys_cryptmbed_sym_aes_decrypt(
+TSS2_RC iesys_cryptmbed_sym_sym_decrypt(
     uint8_t *key,
     TPM2_ALG_ID tpm_sym_alg,
     TPMI_AES_KEY_BITS key_bits,
@@ -118,10 +118,12 @@ TSS2_RC iesys_cryptmbed_init(void *userdata);
 
 #define _iesys_crypto_get_random2b iesys_cryptmbed_random2b
 #define _iesys_crypto_get_ecdh_point iesys_cryptmbed_get_ecdh_point
-#define _iesys_crypto_aes_encrypt iesys_cryptmbed_sym_aes_encrypt
-#define _iesys_crypto_aes_decrypt iesys_cryptmbed_sym_aes_decrypt
+#define _iesys_crypto_aes_encrypt NULL
+#define _iesys_crypto_aes_decrypt NULL
 #define _iesys_crypto_sm4_encrypt NULL
 #define _iesys_crypto_sm4_decrypt NULL
+#define _iesys_crypto_sym_encrypt iesys_cryptmbed_sym_sym_encrypt
+#define _iesys_crypto_sym_decrypt iesys_cryptmbed_sym_sym_decrypt
 
 #define _iesys_crypto_init iesys_cryptmbed_init
 
